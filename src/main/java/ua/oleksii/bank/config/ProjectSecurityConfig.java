@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import ua.oleksii.bank.exceptionhandling.CustomAccessDeniedHandler;
+import ua.oleksii.bank.exceptionhandling.CustomBasicAuthenticationEntryPoint;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -17,29 +19,32 @@ import static org.springframework.security.config.Customizer.withDefaults;
 @Profile("!prod")
 public class ProjectSecurityConfig {
 
-	@Bean
-	@Order(SecurityProperties.BASIC_AUTH_ORDER)
-	SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+    @Bean
+    @Order(SecurityProperties.BASIC_AUTH_ORDER)
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
 //		http.authorizeHttpRequests((requests) -> requests.anyRequest().permitAll());
 //		http.authorizeHttpRequests((requests) -> requests.anyRequest().permitAll());
-		http.authorizeHttpRequests((requests) -> requests
-				.requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
-				.requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
-		http.formLogin(withDefaults());
-		http.csrf(AbstractHttpConfigurer::disable);
-		http.httpBasic(withDefaults());
-		return http.build();
-	}
+        http.authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
+                .requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
+        http.requiresChannel(rcc -> rcc.anyRequest().requiresInsecure());
+        http.formLogin(withDefaults());
+        http.csrf(AbstractHttpConfigurer::disable);
+        http.httpBasic(hbc->hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+        http.exceptionHandling(ehc->ehc.accessDeniedHandler(new CustomAccessDeniedHandler()));
+//        http.exceptionHandling(ehc->ehc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint())); //global level for 401
+        return http.build();
+    }
 
 //	@Bean
 //	public UserDetailsService userDetailsService(DataSource dataSource) {
 //		return new JdbcUserDetailsManager(dataSource);
 //	}
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
 
 
 //	@Bean

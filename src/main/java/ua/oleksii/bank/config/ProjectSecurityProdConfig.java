@@ -10,6 +10,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import ua.oleksii.bank.exceptionhandling.CustomAccessDeniedHandler;
+import ua.oleksii.bank.exceptionhandling.CustomBasicAuthenticationEntryPoint;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -23,9 +25,12 @@ public class ProjectSecurityProdConfig {
         http.authorizeHttpRequests((requests) -> requests
                 .requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
                 .requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
+        http.requiresChannel(rcc -> rcc.anyRequest().requiresSecure());
         http.formLogin(withDefaults());
         http.csrf(AbstractHttpConfigurer::disable);
         http.httpBasic(withDefaults());
+        http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
+        http.exceptionHandling(ehc -> ehc.accessDeniedHandler(new CustomAccessDeniedHandler()));
         return http.build();
     }
 
