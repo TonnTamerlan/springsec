@@ -14,32 +14,30 @@ import org.springframework.security.web.SecurityFilterChain;
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
-@Profile("!prod")
-public class ProjectSecurityConfig {
+@Profile("prod")
+public class ProjectSecurityProdConfig {
 
-	@Bean
-	@Order(SecurityProperties.BASIC_AUTH_ORDER)
-	SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-//		http.authorizeHttpRequests((requests) -> requests.anyRequest().permitAll());
-//		http.authorizeHttpRequests((requests) -> requests.anyRequest().permitAll());
-		http.authorizeHttpRequests((requests) -> requests
-				.requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
-				.requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
-		http.formLogin(withDefaults());
-		http.csrf(AbstractHttpConfigurer::disable);
-		http.httpBasic(withDefaults());
-		return http.build();
-	}
+    @Bean
+    @Order(SecurityProperties.BASIC_AUTH_ORDER)
+    SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.authorizeHttpRequests((requests) -> requests
+                .requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
+                .requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
+        http.formLogin(withDefaults());
+        http.csrf(AbstractHttpConfigurer::disable);
+        http.httpBasic(withDefaults());
+        return http.build();
+    }
 
 //	@Bean
 //	public UserDetailsService userDetailsService(DataSource dataSource) {
 //		return new JdbcUserDetailsManager(dataSource);
 //	}
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return PasswordEncoderFactories.createDelegatingPasswordEncoder();
-	}
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
 
 
 //	@Bean
