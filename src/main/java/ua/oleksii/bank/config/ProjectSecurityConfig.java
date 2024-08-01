@@ -22,11 +22,12 @@ public class ProjectSecurityConfig {
     @Bean
     @Order(SecurityProperties.BASIC_AUTH_ORDER)
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.sessionManagement(smc->smc.invalidSessionUrl("/invalidSession").maximumSessions(1).maxSessionsPreventsLogin(true));
 //		http.authorizeHttpRequests((requests) -> requests.anyRequest().permitAll());
 //		http.authorizeHttpRequests((requests) -> requests.anyRequest().permitAll());
         http.authorizeHttpRequests((requests) -> requests
                 .requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
-                .requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
+                .requestMatchers("/notices", "/contact", "/error", "/register", "/invalidSession").permitAll());
         http.requiresChannel(rcc -> rcc.anyRequest().requiresInsecure());
         http.formLogin(withDefaults());
         http.csrf(AbstractHttpConfigurer::disable);

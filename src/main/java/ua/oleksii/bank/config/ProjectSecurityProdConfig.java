@@ -22,6 +22,7 @@ public class ProjectSecurityProdConfig {
     @Bean
     @Order(SecurityProperties.BASIC_AUTH_ORDER)
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.sessionManagement(smc->smc.invalidSessionUrl("/invalidSession").maximumSessions(1).maxSessionsPreventsLogin(true));
         http.authorizeHttpRequests((requests) -> requests
                 .requestMatchers("/myAccount", "/myCards", "/myBalance", "/myLoans").authenticated()
                 .requestMatchers("/notices", "/contact", "/error", "/register").permitAll());
