@@ -1,6 +1,5 @@
 package ua.oleksii.bank.config;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -15,7 +14,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import ua.oleksii.bank.exceptionhandling.CustomAccessDeniedHandler;
 import ua.oleksii.bank.exceptionhandling.CustomBasicAuthenticationEntryPoint;
 import ua.oleksii.bank.filter.CsrfCookieFilter;
@@ -34,17 +32,14 @@ public class ProjectSecurityProdConfig {
         CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
         http.securityContext(contextConfig -> contextConfig.requireExplicitSave(false))
                 .sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
-                .cors(corsConfig -> corsConfig.configurationSource(new CorsConfigurationSource() {
-                    @Override
-                    public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
-                        CorsConfiguration config = new CorsConfiguration();
-                        config.setAllowedOrigins(Collections.singletonList("https://localhost:4200"));
-                        config.setAllowedMethods(Collections.singletonList(CorsConfiguration.ALL));
-                        config.setAllowCredentials(true);
-                        config.setAllowedHeaders(Collections.singletonList(CorsConfiguration.ALL));
-                        config.setMaxAge(3600L);
-                        return config;
-                    }
+                .cors(corsConfig -> corsConfig.configurationSource(request -> {
+                    CorsConfiguration config = new CorsConfiguration();
+                    config.setAllowedOrigins(Collections.singletonList("https://localhost:4200"));
+                    config.setAllowedMethods(Collections.singletonList(CorsConfiguration.ALL));
+                    config.setAllowCredentials(true);
+                    config.setAllowedHeaders(Collections.singletonList(CorsConfiguration.ALL));
+                    config.setMaxAge(3600L);
+                    return config;
                 }))
                 .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
                         .ignoringRequestMatchers( "/contact","/register")
