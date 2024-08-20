@@ -16,7 +16,10 @@ import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import ua.oleksii.bank.exceptionhandling.CustomAccessDeniedHandler;
 import ua.oleksii.bank.exceptionhandling.CustomBasicAuthenticationEntryPoint;
+import ua.oleksii.bank.filter.AuthorityLoggingAfterFilter;
+import ua.oleksii.bank.filter.AuthorityLoggingFilter;
 import ua.oleksii.bank.filter.CsrfCookieFilter;
+import ua.oleksii.bank.filter.RequestValidtaionBeforeFilter;
 
 import java.util.Collections;
 
@@ -45,6 +48,9 @@ public class ProjectSecurityConfig {
                         .ignoringRequestMatchers( "/contact","/register")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new RequestValidtaionBeforeFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(new AuthorityLoggingFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(new AuthorityLoggingAfterFilter(), BasicAuthenticationFilter.class)
                 .requiresChannel(rcc -> rcc.anyRequest().requiresInsecure()) // Only HTTP
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/myAccount").hasRole("ADMIN")
