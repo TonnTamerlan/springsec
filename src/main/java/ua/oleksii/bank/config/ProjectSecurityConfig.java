@@ -5,8 +5,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -14,12 +17,10 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
+import ua.oleksii.bank.constants.ApplicationConstants;
 import ua.oleksii.bank.exceptionhandling.CustomAccessDeniedHandler;
 import ua.oleksii.bank.exceptionhandling.CustomBasicAuthenticationEntryPoint;
-import ua.oleksii.bank.filter.AuthorityLoggingAfterFilter;
-import ua.oleksii.bank.filter.AuthorityLoggingFilter;
-import ua.oleksii.bank.filter.CsrfCookieFilter;
-import ua.oleksii.bank.filter.RequestValidtaionBeforeFilter;
+import ua.oleksii.bank.filter.*;
 
 import java.util.Collections;
 
@@ -33,24 +34,26 @@ public class ProjectSecurityConfig {
     @Order(SecurityProperties.BASIC_AUTH_ORDER)
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
         CsrfTokenRequestAttributeHandler csrfTokenRequestAttributeHandler = new CsrfTokenRequestAttributeHandler();
-        http.securityContext(contextConfig -> contextConfig.requireExplicitSave(false))
-                .sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.ALWAYS))
+        http.sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(corsConfig -> corsConfig.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(Collections.singletonList("http://localhost:4200"));
                     config.setAllowedMethods(Collections.singletonList(CorsConfiguration.ALL));
                     config.setAllowCredentials(true);
                     config.setAllowedHeaders(Collections.singletonList(CorsConfiguration.ALL));
+                    config.setExposedHeaders(Collections.singletonList(ApplicationConstants.JWT_HEADER));
                     config.setMaxAge(3600L);
                     return config;
                 }))
                 .csrf(csrfConfig -> csrfConfig.csrfTokenRequestHandler(csrfTokenRequestAttributeHandler)
-                        .ignoringRequestMatchers( "/contact","/register")
+                        .ignoringRequestMatchers("/contact", "/register", "/apiLogin")
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class)
                 .addFilterBefore(new RequestValidtaionBeforeFilter(), BasicAuthenticationFilter.class)
                 .addFilterAt(new AuthorityLoggingFilter(), BasicAuthenticationFilter.class)
                 .addFilterAfter(new AuthorityLoggingAfterFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(new JwtTokenGeneratorFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(new JwtTokenValidatorFilter(), BasicAuthenticationFilter.class)
                 .requiresChannel(rcc -> rcc.anyRequest().requiresInsecure()) // Only HTTP
                 .authorizeHttpRequests((requests) -> requests
                         .requestMatchers("/myAccount").hasRole("ADMIN")
@@ -58,7 +61,14 @@ public class ProjectSecurityConfig {
                         .requestMatchers("/myLoans").hasRole("USER")
                         .requestMatchers("/myCards").hasAuthority("USER")
                         .requestMatchers("/user").authenticated()
-                        .requestMatchers("/notices", "/contact", "/error", "/register", "/invalidSession").permitAll());
+                        .requestMatchers(
+                                "/notices",
+                                "/contact",
+                                "/error",
+                                "/register",
+                                "/invalidSession",
+                                "/apiLogin"
+                        ).permitAll());
         http.formLogin(withDefaults());
         http.httpBasic(hbc -> hbc.authenticationEntryPoint(new CustomBasicAuthenticationEntryPoint()));
         http.exceptionHandling(ehc -> ehc.accessDeniedHandler(new CustomAccessDeniedHandler()));
@@ -69,6 +79,14 @@ public class ProjectSecurityConfig {
 //	public UserDetailsService userDetailsService(DataSource dataSource) {
 //		return new JdbcUserDetailsManager(dataSource);
 //	}
+
+    @Bean
+    public AuthenticationManager authenticationManager(UserDetailsService userDetailsService) {
+        var authenticationProvider = new BankUsernamePasswordAuthenticationProvider(userDetailsService);
+        ProviderManager providerManager = new ProviderManager(authenticationProvider);
+        providerManager.setEraseCredentialsAfterAuthentication(false);
+        return providerManager;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
